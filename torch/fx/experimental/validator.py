@@ -533,21 +533,24 @@ try:
             target_exprs: Iterable[z3.ExprRef],
             failed_source_exprs: Iterable[z3.ExprRef]
         ) -> None:
-            model_str = self._joinlines(model, lambda sym: f"{sym}: {model[sym]}")
-            assertions_str = self._joinlines(assertions, z3str)
-            target_exprs_str = self._joinlines(target_exprs, z3str)
-            failed_source_exprs_str = self._joinlines(failed_source_exprs, z3str)
+            def symbolstr(sym: z3.ExprRef) -> str:
+                return f"{sym}: {model[sym]}"
+
+            def joinlines(xs: Iterable[Any]) -> str:
+                return "\n".join(f"  ==> {x}" for x in xs)
+
+            model_str = joinlines(map(symbolstr, model))
+            assertions_str = joinlines(map(z3str, assertions))
+            target_exprs_str = joinlines(map(z3str, target_exprs))
+            failed_source_exprs_str = joinlines(map(z3str, failed_source_exprs))
 
             super().__init__(
                 "translation validation failed.\n\n"
                 "Model:\n" + model_str + "\n\n"
                 "Assertions:\n" + assertions_str + "\n\n"
                 "Target Expressions:\n" + target_exprs_str + "\n\n"
-                "Failed Source Expressions:\n" + failed_source_exprs_str + "\n\n"
+                "Failed Source Expressions:\n" + failed_source_exprs_str
             )
-
-        def _joinlines(self, xs: Iterable[Any], f: Callable[[Any], str] = lambda x: x) -> str:
-            return "\n".join(f"  ==> {f(x)}" for x in xs)
 
 except ImportError:
     _HAS_Z3 = False
