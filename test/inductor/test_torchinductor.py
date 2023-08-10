@@ -920,7 +920,7 @@ class CommonTemplate:
             # make sure things also work if they aren't unrolled
             self.common(fn, (torch.randn(8, 3),))
 
-    def test_multilayer_low_prec(self):
+    def test_multilayer_sum_low_prec(self):
         # fp16 nyi for cpu
         if self.device == "cpu":
             raise unittest.SkipTest("requires CUDA")
@@ -938,6 +938,25 @@ class CommonTemplate:
         sample = torch.full((3999971,), 0, dtype=torch.int64)
         sample[-1] = 1
         self.common(fn, (sample,))
+
+    def test_multilayer_cumsum(self):
+        def fn(a):
+            return torch.cumsum(a.view(-1), 0)
+
+        self.common(fn, (torch.rand(10, 3, 352, 352),))
+
+    def test_multilayer_cumsum_low_prec(self):
+        if self.device == "cpu":
+            raise unittest.SkipTest("ir.Scan nyi on CPU")
+
+        def fn(a):
+            return torch.cumsum(a.view(-1), 0)
+
+        self.common(
+            fn,
+            (torch.rand((10, 3, 352, 352), dtype=torch.float16),),
+            reference_in_float=True,
+        )
 
     def test_expanded_reduction(self):
         if self.device == "cpu":
@@ -1008,6 +1027,17 @@ class CommonTemplate:
             return x * x.sum(-1, dtype=torch.double) + x.sum(dtype=torch.double)
 
         self.common(fn, (torch.ones(32, 32) * 70,))
+
+    def test_cumsum(self):
+        def fn(x):
+            return x.cumsum(0), x.cumsum(1)
+
+        # Persistent reductions
+        self.common(fn, (torch.rand(16, 32),))
+        self.common(fn, (torch.rand(20, 30),))
+
+        # Non-persistent reduction
+        self.common(fn, (torch.rand(100, 4000),))
 
     def test_clamp(self):
         def fn(a, b):
