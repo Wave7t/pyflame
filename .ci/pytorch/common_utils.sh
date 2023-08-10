@@ -158,6 +158,18 @@ function install_torchvision() {
   fi
 }
 
+function install_torchrec_and_fbgemm() {
+  local torchrec_commit
+  local fbgemm_commit
+  torchrec_commit=$(get_pinned_commit torchrec)
+  fbgemm_commit=$(get_pinned_commit fbgemm)
+  pip_uninstall torchrec-nightly
+  pip_uninstall fbgemm-gpu-nightly
+  pip_install setuptools-git-versioning scikit-build
+  pip_install --no-use-pep517 --user "git+https://github.com/pytorch/FBGEMM.git@${fbgemm_commit}#egg=fbgemm-gpu&subdirectory=fbgemm_gpu"
+  pip_install --no-use-pep517 --user "git+https://github.com/pytorch/torchrec.git@${torchrec_commit}"
+}
+
 function install_numpy_pytorch_interop() {
   local commit
   commit=$(get_pinned_commit numpy_pytorch_interop)
